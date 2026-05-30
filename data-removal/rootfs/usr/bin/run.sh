@@ -9,6 +9,7 @@ get_opt() {
 }
 
 export WEB_PASSWORD=$(get_opt web_password)
+export SCAN_INTERVAL=$(get_opt scan_interval)
 
 # Always headless in the container
 export HEADLESS="true"

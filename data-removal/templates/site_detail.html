@@ -186,6 +186,8 @@
                   <span class="badge status-found">🔴 Found</span>
                 {% elif scan.status == "pending_removal" %}
                   <span class="badge status-pending">🟡 Pending</span>
+                {% elif scan.status == "awaiting_verification" %}
+                  <span class="badge bg-primary">📧 Awaiting Verification</span>
                 {% elif scan.status == "removed" %}
                   <span class="badge status-removed">✅ Removed</span>
                 {% elif scan.status == "rescanning" %}
@@ -236,15 +238,29 @@
                 {% if scan.status == "found" or scan.status == "rescanning" %}
                   <form action="{{ url_for('trigger_request', scan_id=scan.id) }}"
                         method="post" class="d-inline">
-                    <button type="submit" class="btn btn-sm btn-warning">
+                    <button type="submit" class="btn btn-sm btn-warning" title="Submit opt-out">
                       <i class="bi bi-send"></i>
                     </button>
                   </form>
                 {% elif scan.status == "pending_removal" %}
+                  <form action="{{ url_for('mark_awaiting_verification', scan_id=scan.id) }}"
+                        method="post" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-primary" title="Waiting for email verification">
+                      <i class="bi bi-envelope-check"></i>
+                    </button>
+                  </form>
                   <form action="{{ url_for('mark_removed', scan_id=scan.id) }}"
                         method="post" class="d-inline">
                     <button type="submit" class="btn btn-sm btn-success"
-                            onclick="return confirm('Confirm removal?')">
+                            onclick="return confirm('Confirm removal?')" title="Mark as removed">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  </form>
+                {% elif scan.status == "awaiting_verification" %}
+                  <form action="{{ url_for('mark_removed', scan_id=scan.id) }}"
+                        method="post" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-success"
+                            onclick="return confirm('Confirm removal?')" title="Mark as removed">
                       <i class="bi bi-check-lg"></i>
                     </button>
                   </form>

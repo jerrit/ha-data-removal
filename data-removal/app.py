@@ -25,7 +25,8 @@ from opt_out_db import ALL_SITES as OPT_OUT_SITES
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me")
 
-WEB_PASSWORD = os.environ.get("WEB_PASSWORD", "")
+WEB_PASSWORD        = os.environ.get("WEB_PASSWORD", "")
+SCAN_INTERVAL_DAYS  = int(os.environ.get("SCAN_INTERVAL", "0") or "0")
 
 
 # ── HA Ingress middleware ─────────────────────────────────────────────────── #
@@ -156,6 +157,8 @@ def _scan_thread(site_ids=None, user=None):
             _scan_state["last_results"]   = results
             _scan_state["last_completed"] = datetime.utcnow().isoformat()
             _scan_state["progress"]       = {}
+        user_id = user["id"] if user else None
+        db.record_snapshot(user_id)
     except Exception as e:
         print(f"[App] Scan thread error: {e}")
     finally:
@@ -207,9 +210,31 @@ def scheduled_prune():
         print(f"[Scheduler] Pruned {count} old scan record(s).")
 
 
+def scheduled_full_scan():
+    with _state_lock:
+        if _scan_state["running"]:
+            print("[Scheduler] Skipping scheduled scan — already running.")
+            return
+    users = db.get_all_users()
+    if not users:
+        return
+    print(f"[Scheduler] Running scheduled full scan for {len(users)} user(s)...")
+
+    def _scan_all_users():
+        for user in users:
+            _scan_thread(user=user)
+
+    threading.Thread(target=_scan_all_users, daemon=True).start()
+
+
 scheduler = BackgroundScheduler()
 scheduler.add_job(scheduled_rescan, "interval", hours=1,  id="rescan_check")
 scheduler.add_job(scheduled_prune,  "interval", days=30,  id="prune_old_scans")
+if SCAN_INTERVAL_DAYS > 0:
+    scheduler.add_job(
+        scheduled_full_scan, "interval", days=SCAN_INTERVAL_DAYS, id="scheduled_full_scan"
+    )
+    print(f"[App] Scheduled full scan every {SCAN_INTERVAL_DAYS} day(s).")
 
 
 # ── Flask routes ─────────────────────────────────────────────────────────── #
@@ -604,6 +629,61 @@ def mark_removed(scan_id):
         return redirect(url_for("site_detail", site_id=scan["site_id"]))
     flash("Scan not found.", "danger")
     return redirect(url_for("dashboard"))
+
+
+@app.route("/mark_awaiting_verification/<int:scan_id>", methods=["POST"])
+def mark_awaiting_verification(scan_id):
+    scan = db.get_scan(scan_id)
+    if scan:
+        db.update_scan_status(scan_id, "awaiting_verification")
+        flash(f"Marked {scan['site_name']} as awaiting email verification.", "info")
+        return redirect(url_for("site_detail", site_id=scan["site_id"]))
+    flash("Scan not found.", "danger")
+    return redirect(url_for("dashboard"))
+
+
+@app.route("/api/scan_history")
+def api_scan_history():
+    current = get_current_user()
+    user_id = current["id"] if current else None
+    rows = db.get_scan_history(user_id=user_id, days=30)
+    return jsonify({
+        "labels":  [r["snapshot_date"] for r in rows],
+        "found":   [r["found"]   for r in rows],
+        "pending": [r["pending"] for r in rows],
+        "removed": [r["removed"] for r in rows],
+    })
+
+
+@app.route("/export/csv")
+def export_csv():
+    import csv
+    import io as _io
+    current = get_current_user()
+    user_id = current["id"] if current else None
+    scans   = db.get_all_scans(user_id=user_id)
+
+    buf = _io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Site", "Status", "Data Found", "Scan Date",
+                     "Request Date", "Next Rescan", "Profile URL"])
+    for s in scans:
+        writer.writerow([
+            s.get("site_name", ""),
+            s.get("status", ""),
+            "Yes" if s.get("profile_found") else "No",
+            (s.get("scan_date") or "")[:10],
+            (s.get("request_date") or "")[:10],
+            (s.get("next_rescan_date") or "")[:10],
+            s.get("profile_url") or "",
+        ])
+
+    from flask import Response
+    return Response(
+        buf.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": "attachment; filename=data-removal-export.csv"},
+    )
 
 
 # ── Main ─────────────────────────────────────────────────────────────────── #

@@ -83,6 +83,18 @@ def init_db():
             )
         """)
 
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS scan_snapshots (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                snapshot_date TEXT    NOT NULL,
+                user_id       INTEGER,
+                found         INTEGER DEFAULT 0,
+                pending       INTEGER DEFAULT 0,
+                removed       INTEGER DEFAULT 0,
+                UNIQUE(snapshot_date, user_id)
+            )
+        """)
+
     _run_migrations(conn)
     conn.close()
 
@@ -207,6 +219,58 @@ def get_user_scan_counts() -> dict[int, dict]:
     """).fetchall()
     conn.close()
     return {r["user_id"]: dict(r) for r in rows}
+
+
+# ── SNAPSHOTS ─────────────────────────────────────────────────────────────── #
+
+def record_snapshot(user_id=None) -> None:
+    """Record today's found/pending/removed counts for the history chart."""
+    conn = get_db()
+    p = (user_id,) if user_id is not None else ()
+    uid = "AND user_id = ?" if user_id is not None else ""
+
+    found   = conn.execute(f"SELECT COUNT(*) FROM scans WHERE status = 'found' {uid}", p).fetchone()[0]
+    pending = conn.execute(
+        f"SELECT COUNT(*) FROM scans WHERE status IN ('pending_removal','awaiting_verification') {uid}", p
+    ).fetchone()[0]
+    removed = conn.execute(f"SELECT COUNT(*) FROM scans WHERE status = 'removed' {uid}", p).fetchone()[0]
+    today   = datetime.utcnow().date().isoformat()
+
+    with conn:
+        conn.execute("""
+            INSERT INTO scan_snapshots (snapshot_date, user_id, found, pending, removed)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(snapshot_date, user_id) DO UPDATE SET
+                found   = excluded.found,
+                pending = excluded.pending,
+                removed = excluded.removed
+        """, (today, user_id, found, pending, removed))
+    conn.close()
+
+
+def get_scan_history(user_id=None, days: int = 30) -> list[dict]:
+    conn = get_db()
+    window = f"-{days} days"
+    if user_id is not None:
+        rows = conn.execute("""
+            SELECT snapshot_date, found, pending, removed
+            FROM scan_snapshots
+            WHERE user_id = ? AND snapshot_date >= date('now', ?)
+            ORDER BY snapshot_date
+        """, (user_id, window)).fetchall()
+    else:
+        rows = conn.execute("""
+            SELECT snapshot_date,
+                   SUM(found)   AS found,
+                   SUM(pending) AS pending,
+                   SUM(removed) AS removed
+            FROM scan_snapshots
+            WHERE snapshot_date >= date('now', ?)
+            GROUP BY snapshot_date
+            ORDER BY snapshot_date
+        """, (window,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
 
 
 # ── SITES ──────────────────────────────────────────────────────────────────── #

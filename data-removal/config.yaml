@@ -5,6 +5,7 @@ description: >-
   Monitor 35 data broker sites for your personal information and automate
   opt-out removal requests. Data stays local — nothing is sent externally.
 url: https://github.com/jerrit/ha-data-removal
+image: ghcr.io/jerrit/ha-data-removal/data-removal
 arch:
   - aarch64
   - amd64
@@ -26,7 +27,9 @@ map:
 options:
   secret_key: ""
   web_password: ""
+  scan_interval: 7
 
 schema:
   secret_key: password?
   web_password: password?
+  scan_interval: int?

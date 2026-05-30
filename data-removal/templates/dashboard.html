@@ -86,6 +86,25 @@
 
 </div>
 
+<!-- ── Scan history chart ─────────────────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-3">
+    <h5 class="mb-0 fw-semibold">
+      <i class="bi bi-graph-up me-2 text-secondary"></i>History
+    </h5>
+    <small class="text-muted">Last 30 days</small>
+  </div>
+  <div class="card-body">
+    <div id="history-chart-wrap" style="height:200px;">
+      <canvas id="history-chart"></canvas>
+    </div>
+    <p id="history-empty" class="text-center text-muted small py-3 mb-0 d-none">
+      <i class="bi bi-bar-chart d-block fs-3 mb-1 text-secondary"></i>
+      Scan history will appear here after your first scan completes.
+    </p>
+  </div>
+</div>
+
 <!-- ── No users prompt ────────────────────────────────────────────────── -->
 {% if not current_user %}
 <div class="alert alert-warning d-flex align-items-center gap-3 mb-4">
@@ -122,17 +141,21 @@
     </h5>
 
     <div class="d-flex align-items-center gap-2">
+      <a href="{{ url_for('export_csv') }}" class="btn btn-sm btn-outline-secondary" title="Export to CSV">
+        <i class="bi bi-download me-1"></i>Export CSV
+      </a>
+
       <button onclick="window.location.reload()" class="btn btn-sm btn-outline-secondary" title="Refresh results">
         <i class="bi bi-arrow-clockwise me-1"></i>Refresh
       </button>
 
       <!-- Status filter buttons -->
       <div class="btn-group btn-group-sm" role="group" id="status-filter">
-      <button type="button" class="btn btn-outline-secondary active" data-filter="all">All</button>
-      <button type="button" class="btn btn-outline-danger"          data-filter="found">Found</button>
-      <button type="button" class="btn btn-outline-warning"         data-filter="pending_removal">Pending</button>
-      <button type="button" class="btn btn-outline-success"         data-filter="removed">Removed</button>
-      <button type="button" class="btn btn-outline-info"            data-filter="rescanning">Rescanning</button>
+        <button type="button" class="btn btn-outline-secondary active" data-filter="all">All</button>
+        <button type="button" class="btn btn-outline-danger"           data-filter="found">Found</button>
+        <button type="button" class="btn btn-outline-warning"          data-filter="pending_removal">Pending</button>
+        <button type="button" class="btn btn-outline-primary"          data-filter="awaiting_verification">Verifying</button>
+        <button type="button" class="btn btn-outline-success"          data-filter="removed">Removed</button>
       </div><!-- /btn-group -->
     </div><!-- /d-flex -->
   </div><!-- /card-header -->
@@ -170,6 +193,8 @@
                 <span class="badge status-pending">🟡 Removal Requested</span>
               {% elif scan.status == "removed" %}
                 <span class="badge status-removed">✅ Removed</span>
+              {% elif scan.status == "awaiting_verification" %}
+                <span class="badge bg-primary">📧 Awaiting Verification</span>
               {% elif scan.status == "rescanning" %}
                 <span class="badge status-rescanning">🔵 Rescanning</span>
               {% elif scan.status == "not_found" %}
@@ -293,7 +318,40 @@
 
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
+/* ── Scan history chart ─────────────────────────────────────────────────── */
+fetch('{{ url_for("api_scan_history") }}')
+  .then(r => r.json())
+  .then(data => {
+    if (!data.labels || data.labels.length < 2) {
+      document.getElementById('history-chart-wrap').classList.add('d-none');
+      document.getElementById('history-empty').classList.remove('d-none');
+      return;
+    }
+    new Chart(document.getElementById('history-chart'), {
+      type: 'line',
+      data: {
+        labels: data.labels,
+        datasets: [
+          { label: 'Found',   data: data.found,   borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,0.08)',  tension: 0.3, fill: true, pointRadius: 3 },
+          { label: 'Pending', data: data.pending, borderColor: '#ffc107', backgroundColor: 'rgba(255,193,7,0.08)',  tension: 0.3, fill: true, pointRadius: 3 },
+          { label: 'Removed', data: data.removed, borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.08)', tension: 0.3, fill: true, pointRadius: 3 },
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } }
+      }
+    });
+  })
+  .catch(() => {
+    document.getElementById('history-chart-wrap').classList.add('d-none');
+    document.getElementById('history-empty').classList.remove('d-none');
+  });
+
 /* ── Status filter ──────────────────────────────────────────────────────── */
 document.querySelectorAll('#status-filter button').forEach(btn => {
   btn.addEventListener('click', () => {
