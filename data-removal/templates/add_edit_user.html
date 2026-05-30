@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+{% block title %}{{ "Edit User" if editing else "Add User" }} — DataRemoval{% endblock %}
+
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a>
+    </li>
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('users_list') }}" class="text-decoration-none">Users</a>
+    </li>
+    <li class="breadcrumb-item active">
+      {{ "Edit: " + user.display_name if editing else "Add User" }}
+    </li>
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom py-3">
+        <h5 class="mb-0 fw-semibold">
+          {% if editing %}
+            <i class="bi bi-pencil-square me-2 text-info"></i>Edit Profile: {{ user.display_name }}
+          {% else %}
+            <i class="bi bi-person-plus me-2 text-info"></i>Add New User Profile
+          {% endif %}
+        </h5>
+      </div>
+      <div class="card-body p-4">
+
+        <p class="text-muted small mb-4">
+          These details are used when scanning data broker sites for this person's information.
+          The <strong>first name</strong>, <strong>last name</strong>, and <strong>state</strong>
+          are used in search queries — fill them in accurately.
+        </p>
+
+        <form action="{{ url_for('edit_user', user_id=user.id) if editing else url_for('add_user') }}"
+              method="post">
+
+          <!-- Display Name -->
+          <div class="mb-3">
+            <label class="form-label fw-medium">
+              Display Name <span class="text-danger">*</span>
+            </label>
+            <input type="text" name="display_name" class="form-control"
+                   placeholder="e.g. Jane (Personal) or John Work"
+                   value="{{ user.display_name if user else '' }}" required />
+            <div class="form-text">A short label shown in the navbar and user list.</div>
+          </div>
+
+          <!-- First / Last Name -->
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-medium">
+                First Name <span class="text-danger">*</span>
+              </label>
+              <input type="text" name="first_name" class="form-control"
+                     placeholder="Jane"
+                     value="{{ user.first_name if user else '' }}" required />
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-medium">
+                Last Name <span class="text-danger">*</span>
+              </label>
+              <input type="text" name="last_name" class="form-control"
+                     placeholder="Smith"
+                     value="{{ user.last_name if user else '' }}" required />
+            </div>
+          </div>
+
+          <!-- City / State -->
+          <div class="row g-3 mb-3">
+            <div class="col-sm-5">
+              <label class="form-label fw-medium">City</label>
+              <input type="text" name="city" class="form-control"
+                     placeholder="Springfield"
+                     value="{{ user.city if user else '' }}" />
+            </div>
+            <div class="col-sm-3">
+              <label class="form-label fw-medium">State</label>
+              <select name="state" id="stateSelect" class="form-select">
+                <option value="">—</option>
+                {% set states = [
+                  ("AL","Alabama"),("AK","Alaska"),("AZ","Arizona"),("AR","Arkansas"),
+                  ("CA","California"),("CO","Colorado"),("CT","Connecticut"),("DE","Delaware"),
+                  ("FL","Florida"),("GA","Georgia"),("HI","Hawaii"),("ID","Idaho"),
+                  ("IL","Illinois"),("IN","Indiana"),("IA","Iowa"),("KS","Kansas"),
+                  ("KY","Kentucky"),("LA","Louisiana"),("ME","Maine"),("MD","Maryland"),
+                  ("MA","Massachusetts"),("MI","Michigan"),("MN","Minnesota"),
+                  ("MS","Mississippi"),("MO","Missouri"),("MT","Montana"),("NE","Nebraska"),
+                  ("NV","Nevada"),("NH","New Hampshire"),("NJ","New Jersey"),
+                  ("NM","New Mexico"),("NY","New York"),("NC","North Carolina"),
+                  ("ND","North Dakota"),("OH","Ohio"),("OK","Oklahoma"),("OR","Oregon"),
+                  ("PA","Pennsylvania"),("RI","Rhode Island"),("SC","South Carolina"),
+                  ("SD","South Dakota"),("TN","Tennessee"),("TX","Texas"),("UT","Utah"),
+                  ("VT","Vermont"),("VA","Virginia"),("WA","Washington"),
+                  ("WV","West Virginia"),("WI","Wisconsin"),("WY","Wyoming")
+                ] %}
+                {% for abbr, name in states %}
+                  <option value="{{ abbr }}"
+                    {% if user and user.state == abbr %}selected{% endif %}
+                    data-fullname="{{ name }}">
+                    {{ abbr }} — {{ name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-medium">State Full Name</label>
+              <input type="text" name="state_full" id="stateFullInput" class="form-control"
+                     placeholder="Illinois"
+                     value="{{ user.state_full if user else '' }}" />
+              <div class="form-text">Auto-filled when you pick a state.</div>
+            </div>
+          </div>
+
+          <!-- Email / Phone -->
+          <div class="row g-3 mb-3">
+            <div class="col-sm-7">
+              <label class="form-label fw-medium">Email</label>
+              <input type="email" name="email" class="form-control"
+                     placeholder="jane@example.com"
+                     value="{{ user.email if user else '' }}" />
+              <div class="form-text">Used in opt-out form submissions.</div>
+            </div>
+            <div class="col-sm-5">
+              <label class="form-label fw-medium">Phone</label>
+              <input type="text" name="phone" class="form-control"
+                     placeholder="555-555-5555"
+                     value="{{ user.phone if user else '' }}" />
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="mb-4">
+            <label class="form-label fw-medium">Notes</label>
+            <textarea name="notes" class="form-control" rows="3"
+                      placeholder="Optional — e.g. maiden name, former address...">{{ user.notes if user else '' }}</textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-info text-white px-4">
+              {% if editing %}
+                <i class="bi bi-check-lg me-1"></i>Save Changes
+              {% else %}
+                <i class="bi bi-person-plus me-1"></i>Add User
+              {% endif %}
+            </button>
+            <a href="{{ url_for('users_list') }}" class="btn btn-outline-secondary">
+              Cancel
+            </a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* Auto-fill state_full when state dropdown changes */
+const stateSelect = document.getElementById('stateSelect');
+const stateFullInput = document.getElementById('stateFullInput');
+
+stateSelect.addEventListener('change', () => {
+  const selected = stateSelect.options[stateSelect.selectedIndex];
+  if (selected.value && !stateFullInput.value) {
+    stateFullInput.value = selected.dataset.fullname || '';
+  }
+});
+</script>
+{% endblock %}

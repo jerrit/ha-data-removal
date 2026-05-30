@@ -1,0 +1,191 @@
+/* ── DataRemoval — custom styles on top of Bootstrap 5 ────────────────── */
+
+/* ── Typography & base ─────────────────────────────────────────────────── */
+body {
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main.container {
+  flex: 1;
+}
+
+/* ── Navbar ────────────────────────────────────────────────────────────── */
+.navbar-brand {
+  letter-spacing: -0.3px;
+  font-size: 1.1rem;
+}
+
+/* ── Summary stat cards ────────────────────────────────────────────────── */
+.stat-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.stat-icon {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-number {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.stat-label {
+  font-size: 0.78rem;
+  color: #6c757d;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ── Status badges ─────────────────────────────────────────────────────── */
+.badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.35em 0.6em;
+  border-radius: 6px;
+}
+
+.status-found {
+  background-color: #ffe0e0;
+  color: #c0392b;
+  border: 1px solid #f5b7b1;
+}
+
+.status-pending {
+  background-color: #fef9e7;
+  color: #b7950b;
+  border: 1px solid #f9e79f;
+}
+
+.status-removed {
+  background-color: #e9f7ef;
+  color: #1e8449;
+  border: 1px solid #a9dfbf;
+}
+
+.status-rescanning {
+  background-color: #e8f4fd;
+  color: #1a5276;
+  border: 1px solid #a9cce3;
+}
+
+.status-not-found {
+  background-color: #f2f3f4;
+  color: #5d6d7e;
+  border: 1px solid #d5d8dc;
+}
+
+.status-blocked {
+  background-color: #fdf2f8;
+  color: #76448a;
+  border: 1px solid #d7bde2;
+}
+
+.status-scanning {
+  background-color: #eaf2ff;
+  color: #1a73e8;
+  border: 1px solid #bcd4f7;
+}
+
+/* ── Data field chips (shown in the findings table) ────────────────────── */
+.data-chip {
+  display: inline-block;
+  background: #f0f4f8;
+  border: 1px solid #d1dce8;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  margin: 1px 2px 1px 0;
+  color: #445566;
+  font-family: "SF Mono", "Consolas", monospace;
+}
+
+/* ── Findings table ────────────────────────────────────────────────────── */
+#findings-table th {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6c757d;
+}
+
+.site-link:hover {
+  color: #0d6efd !important;
+}
+
+/* ── Site tile cards (shown when no scans yet) ─────────────────────────── */
+.site-tile {
+  transition: background-color 0.1s ease, transform 0.1s ease;
+}
+
+.site-tile:hover {
+  background-color: #e9f0ff;
+  transform: translateY(-1px);
+}
+
+/* ── Opt-out instructions box (preformatted text) ──────────────────────── */
+.instructions-box {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.55;
+  color: #343a40;
+  margin-bottom: 0;
+}
+
+/* ── Small label above a detail value ──────────────────────────────────── */
+.label-small {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9aa5b4;
+  margin-bottom: 4px;
+}
+
+/* ── Card header consistency ────────────────────────────────────────────── */
+.card-header {
+  font-size: 0.9rem;
+  color: #343a40;
+}
+
+/* ── Alert styling ──────────────────────────────────────────────────────── */
+.alert {
+  border-left: 4px solid transparent;
+  border-radius: 8px;
+}
+.alert-info    { border-left-color: #0dcaf0; }
+.alert-success { border-left-color: #198754; }
+.alert-warning { border-left-color: #ffc107; }
+.alert-danger  { border-left-color: #dc3545; }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+footer {
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+
+/* ── Responsive tweaks ──────────────────────────────────────────────────── */
+@media (max-width: 576px) {
+  .stat-number { font-size: 1.4rem; }
+  .stat-icon   { width: 42px; height: 42px; }
+}

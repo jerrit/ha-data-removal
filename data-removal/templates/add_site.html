@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Add New Site — DataRemoval{% endblock %}
+
+{% block content %}
+
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a>
+    </li>
+    <li class="breadcrumb-item active">Add New Site</li>
+  </ol>
+</nav>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom py-3">
+        <h5 class="mb-0 fw-semibold">
+          <i class="bi bi-plus-circle me-2 text-info"></i>Register a New Data Broker Site
+        </h5>
+      </div>
+      <div class="card-body p-4">
+
+        <p class="text-muted small mb-4">
+          Add any data broker site here. The <strong>search URL template</strong> is
+          the most important field — it tells the scanner where to look for your data.
+          The opt-out fields can be filled in later from the site detail page.
+        </p>
+
+        <form action="{{ url_for('add_site') }}" method="post">
+
+          <!-- Name & URL row -->
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-medium">Site Name <span class="text-danger">*</span></label>
+              <input type="text" name="name" class="form-control"
+                     placeholder="e.g. MyDataBroker" required />
+              <div class="form-text">A short unique name — used as the identifier.</div>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label fw-medium">Homepage URL <span class="text-danger">*</span></label>
+              <input type="url" name="url" class="form-control"
+                     placeholder="https://www.example.com" required />
+            </div>
+          </div>
+
+          <!-- Search URL template -->
+          <div class="mb-3">
+            <label class="form-label fw-medium">Search URL Template</label>
+            <input type="text" name="search_url_template" class="form-control font-monospace"
+                   placeholder="https://example.com/people/{first}-{last}/{state}" />
+            <div class="form-text">
+              Use these placeholders (replaced with your configured user details):
+              <code>{first}</code> &nbsp;
+              <code>{last}</code> &nbsp;
+              <code>{city}</code> &nbsp;
+              <code>{state}</code> &nbsp;
+              <code>{first_last}</code> &nbsp;
+              <code>{name}</code>
+            </div>
+          </div>
+
+          <!-- Opt-out URL & method -->
+          <div class="row g-3 mb-3">
+            <div class="col-sm-8">
+              <label class="form-label fw-medium">Opt-Out URL</label>
+              <input type="url" name="opt_out_url" class="form-control"
+                     placeholder="https://www.example.com/opt-out" />
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-medium">Removal Method</label>
+              <select name="opt_out_method" class="form-select">
+                <option value="form"  selected>Web Form</option>
+                <option value="email">Email</option>
+                <option value="mail">Physical Mail</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Estimated days -->
+          <div class="mb-3" style="max-width: 200px;">
+            <label class="form-label fw-medium">Est. Removal Days</label>
+            <input type="number" name="estimated_days" class="form-control"
+                   value="30" min="1" max="180" />
+          </div>
+
+          <!-- Instructions -->
+          <div class="mb-4">
+            <label class="form-label fw-medium">Opt-Out Instructions</label>
+            <textarea name="opt_out_instructions" class="form-control" rows="5"
+                      placeholder="1. Go to the opt-out page&#10;2. Enter your name&#10;3. ..."></textarea>
+            <div class="form-text">Step-by-step notes shown on the site detail page.</div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-info text-white px-4">
+              <i class="bi bi-plus-circle me-1"></i>Add Site
+            </button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+              Cancel
+            </a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- Tips card -->
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body p-3">
+        <p class="fw-semibold mb-2 small">
+          <i class="bi bi-lightbulb text-warning me-1"></i>Tips for finding search URL templates
+        </p>
+        <ul class="small text-muted mb-0 ps-3">
+          <li>Go to the site and search for a common first/last name manually</li>
+          <li>Copy the URL from the results page and replace your name and state with <code>{first}</code>, <code>{last}</code>, <code>{state}</code></li>
+          <li>Example: <code>https://site.com/people/john-smith/il</code>
+              → <code>https://site.com/people/{first_last}/{state}</code></li>
+          <li>If the site uses a form (not URL-based search), leave the search template blank —
+              the scanner will still try to visit the homepage and check for your name</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

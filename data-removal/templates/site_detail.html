@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title %}{{ site.name }} — DataRemoval{% endblock %}
+
+{% block content %}
+
+<!-- ── Breadcrumb ─────────────────────────────────────────────────────── -->
+<nav aria-label="breadcrumb" class="mb-3">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item">
+      <a href="{{ url_for('dashboard') }}" class="text-decoration-none">Dashboard</a>
+    </li>
+    <li class="breadcrumb-item active">{{ site.name }}</li>
+  </ol>
+</nav>
+
+<!-- ── Page header ────────────────────────────────────────────────────── -->
+<div class="d-flex align-items-start justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h1 class="h3 fw-bold mb-1">
+      <i class="bi bi-database text-info me-2"></i>{{ site.name }}
+      {% if not site.get('enabled', 1) %}
+        <span class="badge bg-secondary fw-normal ms-1" style="font-size:.6em;vertical-align:middle;">
+          Disabled
+        </span>
+      {% endif %}
+    </h1>
+    <a href="{{ site.url }}" target="_blank" rel="noopener"
+       class="text-muted small text-decoration-none">
+      {{ site.url }} <i class="bi bi-box-arrow-up-right ms-1"></i>
+    </a>
+  </div>
+
+  <!-- Action buttons -->
+  <div class="d-flex gap-2 flex-wrap">
+
+    <!-- Edit site -->
+    <a href="{{ url_for('edit_site', site_id=site.id) }}"
+       class="btn btn-outline-secondary btn-sm" title="Edit site details">
+      <i class="bi bi-pencil me-1"></i>Edit
+    </a>
+
+    <!-- Test search URL (only shown when a template is configured) -->
+    {% if site.get('search_url_template') %}
+    <a href="{{ url_for('test_site_url', site_id=site.id) }}" target="_blank" rel="noopener"
+       class="btn btn-outline-secondary btn-sm"
+       title="Resolve the search URL template with your details and open it">
+      <i class="bi bi-box-arrow-up-right me-1"></i>Test URL
+    </a>
+    {% endif %}
+
+    <!-- Enable / Disable toggle -->
+    <form action="{{ url_for('toggle_site', site_id=site.id) }}" method="post">
+      {% if site.get('enabled', 1) %}
+        <button type="submit" class="btn btn-outline-warning btn-sm"
+                onclick="return confirm('Disable this site from future scans?')">
+          <i class="bi bi-pause-circle me-1"></i>Disable
+        </button>
+      {% else %}
+        <button type="submit" class="btn btn-outline-success btn-sm">
+          <i class="bi bi-play-circle me-1"></i>Re-enable
+        </button>
+      {% endif %}
+    </form>
+
+    <!-- Scan this site -->
+    <form action="{{ url_for('trigger_site_scan', site_id=site.id) }}" method="post">
+      <button type="submit" class="btn btn-outline-info btn-sm"
+              {% if not site.get('enabled', 1) %}disabled title="Re-enable this site to scan it"{% endif %}>
+        <i class="bi bi-arrow-clockwise me-1"></i>Scan This Site
+      </button>
+    </form>
+
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- ── Left column: opt-out info ────────────────────────────────────── -->
+  <div class="col-lg-4">
+
+    <!-- Opt-out method card -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-header bg-white border-bottom fw-semibold py-3">
+        <i class="bi bi-journal-text me-2 text-secondary"></i>Removal Process
+      </div>
+      <div class="card-body">
+
+        <div class="mb-3">
+          <span class="label-small">Method</span>
+          {% if site.opt_out_method == "form" %}
+            <span class="badge bg-primary">
+              <i class="bi bi-ui-checks me-1"></i>Web Form
+            </span>
+          {% elif site.opt_out_method == "email" %}
+            <span class="badge bg-info text-dark">
+              <i class="bi bi-envelope me-1"></i>Email
+            </span>
+          {% elif site.opt_out_method == "mail" %}
+            <span class="badge bg-secondary">
+              <i class="bi bi-mailbox me-1"></i>Physical Mail
+            </span>
+          {% else %}
+            <span class="badge bg-light text-dark">{{ site.opt_out_method or "Unknown" }}</span>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <span class="label-small">Estimated Time</span>
+          <span class="fw-medium">{{ site.estimated_days or "?" }} days</span>
+        </div>
+
+        {% if site.opt_out_url %}
+        <div class="mb-3">
+          <span class="label-small">Opt-Out URL</span>
+          <a href="{{ site.opt_out_url }}" target="_blank" rel="noopener"
+             class="d-block small text-break text-info">
+            {{ site.opt_out_url }}
+            <i class="bi bi-box-arrow-up-right ms-1"></i>
+          </a>
+        </div>
+        {% endif %}
+
+        {% if site.opt_out_instructions %}
+        <div>
+          <span class="label-small">Step-by-Step Instructions</span>
+          <pre class="instructions-box small">{{ site.opt_out_instructions }}</pre>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    <!-- Quick action: submit opt-out for the most recent found scan -->
+    {% if first_actionable %}
+    <div class="card border-warning border-2 shadow-sm mb-3">
+      <div class="card-body text-center py-3">
+        <p class="mb-2 fw-semibold text-warning">
+          <i class="bi bi-exclamation-triangle me-1"></i>Your data was found here
+        </p>
+        <form action="{{ url_for('trigger_request', scan_id=first_actionable.id) }}" method="post">
+          <button type="submit" class="btn btn-warning w-100">
+            <i class="bi bi-send me-1"></i>Submit Opt-Out Request
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- ── Right column: scan history ───────────────────────────────────── -->
+  <div class="col-lg-8">
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom fw-semibold py-3 d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-clock-history me-2 text-secondary"></i>Scan History</span>
+        {% if current_user %}
+          <small class="text-muted fw-normal">
+            <i class="bi bi-person me-1"></i>{{ current_user.display_name }}
+          </small>
+        {% endif %}
+      </div>
+
+      {% if scans %}
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Data Found</th>
+              <th>Request Sent</th>
+              <th>Next Rescan</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for scan in scans %}
+            <tr>
+              <td class="small text-nowrap text-muted">
+                {{ scan.scan_date[:16].replace("T", " ") if scan.scan_date else "—" }}
+              </td>
+
+              <td>
+                {% if scan.status == "found" %}
+                  <span class="badge status-found">🔴 Found</span>
+                {% elif scan.status == "pending_removal" %}
+                  <span class="badge status-pending">🟡 Pending</span>
+                {% elif scan.status == "removed" %}
+                  <span class="badge status-removed">✅ Removed</span>
+                {% elif scan.status == "rescanning" %}
+                  <span class="badge status-rescanning">🔵 Rescanning</span>
+                {% elif scan.status == "not_found" %}
+                  <span class="badge status-not-found">⚪ Not Found</span>
+                {% elif scan.status == "blocked" %}
+                  <span class="badge status-blocked">🚫 Blocked</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ scan.status }}</span>
+                {% endif %}
+              </td>
+
+              <td class="small">
+                {% if scan.profile_found %}
+                  {% if scan.profile_url and scan.profile_url.startswith('http') %}
+                    <a href="{{ scan.profile_url }}" target="_blank"
+                       class="text-danger small" rel="noopener">
+                      <i class="bi bi-link-45deg"></i> View Profile
+                    </a>
+                  {% else %}
+                    <span class="text-danger">Yes</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">No</span>
+                {% endif %}
+              </td>
+
+              <td class="small text-nowrap text-muted">
+                {{ scan.request_date[:10] if scan.request_date else "—" }}
+              </td>
+
+              <td class="small text-nowrap">
+                {% if scan.days_until_rescan is not none %}
+                  {% if scan.days_until_rescan == 0 %}
+                    <span class="text-danger">Today</span>
+                  {% elif scan.days_until_rescan <= 5 %}
+                    <span class="text-warning">{{ scan.days_until_rescan }}d</span>
+                  {% else %}
+                    <span class="text-muted">{{ scan.days_until_rescan }}d</span>
+                  {% endif %}
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+
+              <td class="text-end text-nowrap">
+                {% if scan.status == "found" or scan.status == "rescanning" %}
+                  <form action="{{ url_for('trigger_request', scan_id=scan.id) }}"
+                        method="post" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-warning">
+                      <i class="bi bi-send"></i>
+                    </button>
+                  </form>
+                {% elif scan.status == "pending_removal" %}
+                  <form action="{{ url_for('mark_removed', scan_id=scan.id) }}"
+                        method="post" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-success"
+                            onclick="return confirm('Confirm removal?')">
+                      <i class="bi bi-check-lg"></i>
+                    </button>
+                  </form>
+                {% endif %}
+              </td>
+
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% else %}
+      <div class="card-body text-center text-muted py-5">
+        <i class="bi bi-search fs-2 d-block mb-2 text-secondary"></i>
+        No scans for this site yet.<br>
+        Use <strong>Scan This Site</strong> above to check it now.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Latest request notes / email template ──────────────────────── -->
+    {% if latest_request and latest_request.notes %}
+    <div class="card border-0 shadow-sm mt-4">
+      <div class="card-header bg-white border-bottom fw-semibold py-3">
+        <i class="bi bi-chat-left-text me-2 text-secondary"></i>Last Request Notes
+      </div>
+      <div class="card-body">
+        <pre class="instructions-box small">{{ latest_request.notes }}</pre>
+
+        {% if latest_request.email_text %}
+        <div class="mt-3">
+          <div class="d-flex align-items-center justify-content-between mb-2">
+            <span class="fw-semibold small">
+              <i class="bi bi-envelope me-1 text-secondary"></i>Email to Send
+            </span>
+            <button type="button" class="btn btn-sm btn-outline-secondary"
+                    id="copy-email-btn">
+              <i class="bi bi-clipboard me-1"></i>Copy
+            </button>
+          </div>
+          <pre class="instructions-box small" id="email-text-block">{{ latest_request.email_text }}</pre>
+        </div>
+        {% endif %}
+
+        <div class="mt-3">
+          {% if latest_request.confirmation %}
+            <span class="badge bg-success">
+              <i class="bi bi-check-circle me-1"></i>Confirmation received
+            </span>
+          {% else %}
+            <span class="badge bg-warning text-dark">
+              <i class="bi bi-hourglass-split me-1"></i>Awaiting confirmation
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const copyBtn = document.getElementById('copy-email-btn');
+if (copyBtn) {
+  copyBtn.addEventListener('click', () => {
+    const text = document.getElementById('email-text-block').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      copyBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Copied!';
+      copyBtn.classList.replace('btn-outline-secondary', 'btn-success');
+      setTimeout(() => {
+        copyBtn.innerHTML = '<i class="bi bi-clipboard me-1"></i>Copy';
+        copyBtn.classList.replace('btn-success', 'btn-outline-secondary');
+      }, 2000);
+    });
+  });
+}
+</script>
+{% endblock %}
