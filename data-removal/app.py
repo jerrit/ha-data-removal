@@ -25,6 +25,8 @@ from opt_out_db import ALL_SITES as OPT_OUT_SITES
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "change-me")
 
+WEB_PASSWORD = os.environ.get("WEB_PASSWORD", "")
+
 
 # ── HA Ingress middleware ─────────────────────────────────────────────────── #
 # HA's ingress proxy forwards requests to the addon at port 8099 and adds the
@@ -76,7 +78,41 @@ def inject_user_context():
     return {
         "current_user": get_current_user(),
         "all_users": db.get_all_users(),
+        "web_password_enabled": bool(WEB_PASSWORD),
     }
+
+
+# ── Password gate ────────────────────────────────────────────────────────── #
+
+@app.before_request
+def require_password():
+    if not WEB_PASSWORD:
+        return
+    if request.endpoint in ("login", "logout", "static"):
+        return
+    if session.get("web_authenticated"):
+        return
+    next_url = request.full_path if request.path != "/" else ""
+    return redirect(url_for("login", next=next_url or ""))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not WEB_PASSWORD:
+        return redirect(url_for("dashboard"))
+    if request.method == "POST":
+        if request.form.get("password") == WEB_PASSWORD:
+            session["web_authenticated"] = True
+            next_url = request.form.get("next") or url_for("dashboard")
+            return redirect(next_url)
+        flash("Incorrect password.", "danger")
+    return render_template("login.html", next=request.args.get("next", ""))
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.pop("web_authenticated", None)
+    return redirect(url_for("login"))
 
 
 # ── Startup ──────────────────────────────────────────────────────────────── #

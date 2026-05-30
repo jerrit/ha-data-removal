@@ -16,6 +16,7 @@ export USER_STATE=$(get_opt state)
 export USER_STATE_FULL=$(get_opt state_full)
 export USER_EMAIL=$(get_opt email)
 export USER_PHONE=$(get_opt phone)
+export WEB_PASSWORD=$(get_opt web_password)
 
 # Always headless in the container
 export HEADLESS="true"

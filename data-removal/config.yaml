@@ -27,6 +27,7 @@ options:
   email: ""
   phone: ""
   secret_key: ""
+  web_password: ""
 
 schema:
   first_name: str
@@ -37,3 +38,4 @@ schema:
   email: email?
   phone: str?
   secret_key: password?
+  web_password: password?

@@ -92,6 +92,14 @@
           </ul>
         </div>
 
+        {% if web_password_enabled %}
+        <form action="{{ url_for('logout') }}" method="post" class="ms-2">
+          <button type="submit" class="btn btn-outline-danger btn-sm" title="Lock the UI">
+            <i class="bi bi-lock-fill me-1"></i>Lock
+          </button>
+        </form>
+        {% endif %}
+
       </div>
     </div>
   </nav>
