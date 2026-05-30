@@ -19,23 +19,9 @@ map:
   - data:rw
 
 options:
-  first_name: ""
-  last_name: ""
-  city: ""
-  state: ""
-  state_full: ""
-  email: ""
-  phone: ""
   secret_key: ""
   web_password: ""
 
 schema:
-  first_name: str
-  last_name: str
-  city: str?
-  state: str?
-  state_full: str?
-  email: email?
-  phone: str?
   secret_key: password?
   web_password: password?

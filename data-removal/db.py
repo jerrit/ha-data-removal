@@ -7,7 +7,6 @@ Home Assistant addon restarts.
 
 import sqlite3
 import json
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -106,31 +105,8 @@ def _run_migrations(conn):
 # ── USERS ──────────────────────────────────────────────────────────────────── #
 
 def seed_default_user() -> dict | None:
-    """Create a default user from env vars if no users exist yet."""
-    conn = get_db()
-    count = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-    conn.close()
-
-    if count > 0:
-        return get_default_user()
-
-    first = os.environ.get("USER_FIRST_NAME", "")
-    last  = os.environ.get("USER_LAST_NAME", "")
-    if not first and not last:
-        return None
-
-    return create_user(
-        display_name = f"{first} {last}".strip() or "Default User",
-        first_name   = first,
-        last_name    = last,
-        city         = os.environ.get("USER_CITY", ""),
-        state        = os.environ.get("USER_STATE", ""),
-        state_full   = os.environ.get("USER_STATE_FULL", ""),
-        email        = os.environ.get("USER_EMAIL", ""),
-        phone        = os.environ.get("USER_PHONE", ""),
-        notes        = "Auto-created from addon configuration on first startup",
-        is_default   = 1,
-    )
+    """No-op — users are added via the web UI."""
+    return get_default_user()
 
 
 def create_user(

@@ -549,11 +549,14 @@ def test_site_url(site_id):
         return redirect(url_for("site_detail", site_id=site_id))
 
     current    = get_current_user()
-    first      = current.get("first_name", "") if current else os.getenv("USER_FIRST_NAME", "")
-    last       = current.get("last_name",  "") if current else os.getenv("USER_LAST_NAME",  "")
-    city       = current.get("city",       "") if current else os.getenv("USER_CITY",       "")
-    state      = current.get("state",      "") if current else os.getenv("USER_STATE",      "")
-    state_full = current.get("state_full", "") if current else os.getenv("USER_STATE_FULL", "")
+    if not current:
+        flash("Add a user profile first before testing a search URL.", "warning")
+        return redirect(url_for("site_detail", site_id=site_id))
+    first      = current.get("first_name", "")
+    last       = current.get("last_name",  "")
+    city       = current.get("city",       "")
+    state      = current.get("state",      "")
+    state_full = current.get("state_full", "")
 
     subs = {
         "first":      first,
