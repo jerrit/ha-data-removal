@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2] - 2026-05-30
+
+### Added
+- Users link added to the main navbar for easy access (no longer buried in the dropdown)
+
+### Fixed
+- Updated addon icon to match the shield-lock-fill icon shown on the login screen
+
 ## [1.0.1] - 2026-05-30
 
 ### Changed
