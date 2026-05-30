@@ -1,5 +1,5 @@
 name: Data Removal
-version: "1.0.0"
+version: "1.0.1"
 slug: data_removal
 description: >-
   Monitor 35 data broker sites for your personal information and automate
