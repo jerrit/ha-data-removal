@@ -15,6 +15,11 @@ boot: auto
 ingress: true
 ingress_port: 8099
 
+ports:
+  8099/tcp: 8099
+ports_description:
+  8099/tcp: Web UI (direct access)
+
 map:
   - data:rw
 
