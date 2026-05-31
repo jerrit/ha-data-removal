@@ -552,6 +552,133 @@ async def request_radaris(page, scan: dict) -> dict:
         }
 
 
+async def request_anywho(page, scan: dict) -> dict:
+    try:
+        await page.goto("https://www.anywho.com/opt-out", timeout=PAGE_TIMEOUT)
+        await page.wait_for_load_state("domcontentloaded", timeout=PAGE_TIMEOUT)
+        await random_delay()
+
+        # ── Step 1: fill the search form ──────────────────────────────────── #
+        for sel, value in [
+            ('input[name="firstName"], input[placeholder*="First"], input[id*="first"]', FIRST),
+            ('input[name="lastName"],  input[placeholder*="Last"],  input[id*="last"]',  LAST),
+            ('input[name="city"],      input[placeholder*="City"],  input[id*="city"]',  CITY),
+        ]:
+            el = await page.query_selector(sel)
+            if el:
+                await el.fill(value)
+                await random_delay(0.3, 0.7)
+
+        state_sel = await page.query_selector('select[name="state"], select[id*="state"]')
+        if state_sel:
+            await state_sel.select_option(value=STATE)
+            await random_delay(0.3, 0.5)
+
+        search_btn = await page.query_selector(
+            'button[type="submit"], input[type="submit"], button:has-text("Search"), button:has-text("Find")'
+        )
+        if search_btn:
+            await search_btn.click()
+            await page.wait_for_load_state("networkidle", timeout=PAGE_TIMEOUT)
+            await random_delay(2, 4)
+
+        # ── Step 2: find and click Remove on the matching listing ─────────── #
+        clicked_remove = False
+
+        # Try finding a result row that contains our name and clicking its Remove button
+        result_rows = await page.query_selector_all(
+            '.record, .result, .listing, [class*="result"], [class*="record"], [class*="person"], li'
+        )
+        for row in result_rows:
+            text = (await row.inner_text()).lower()
+            if LAST.lower() in text and FIRST.lower() in text:
+                remove = await row.query_selector(
+                    'button:has-text("Remove"), a:has-text("Remove"), input[value*="Remove"]'
+                )
+                if remove:
+                    await remove.click()
+                    await page.wait_for_load_state("networkidle", timeout=PAGE_TIMEOUT)
+                    await random_delay(2, 3)
+                    clicked_remove = True
+                    break
+
+        # Fallback: click the first visible Remove button on the page
+        if not clicked_remove:
+            remove = await page.query_selector(
+                'button:has-text("Remove"), a:has-text("Remove this record"), '
+                'a:has-text("Remove My Listing"), input[value*="Remove"]'
+            )
+            if remove:
+                await remove.click()
+                await page.wait_for_load_state("networkidle", timeout=PAGE_TIMEOUT)
+                await random_delay(2, 3)
+                clicked_remove = True
+
+        # ── Step 3: enter email and submit the removal form ───────────────── #
+        submitted_email = False
+        email_input = await page.query_selector('input[type="email"], input[name="email"], input[id*="email"]')
+        if email_input and EMAIL:
+            await email_input.fill(EMAIL)
+            await random_delay(0.5, 1)
+
+            submit_btn = await page.query_selector('button[type="submit"], input[type="submit"]')
+            if submit_btn:
+                await submit_btn.click()
+                await page.wait_for_load_state("networkidle", timeout=PAGE_TIMEOUT)
+                await random_delay(2, 3)
+                submitted_email = True
+
+        content = await page.inner_text("body")
+        confirmed = any(
+            p in content.lower()
+            for p in ["check your email", "confirmation", "submitted", "request received", "verify"]
+        )
+
+        if submitted_email:
+            notes = (
+                f"AnyWho opt-out submitted for {FIRST} {LAST} in {CITY}, {STATE}.\n"
+                f"📧 Check {EMAIL} for a verification email from AnyWho.\n"
+                "Click the link in the email to complete the opt-out.\n"
+                "Removal typically takes 3–7 business days.\n\n"
+                "Note: AnyWho is part of the Intelius network — opting out of "
+                "Intelius (site #5) should also cover AnyWho."
+            )
+        else:
+            notes = (
+                f"AnyWho opt-out page loaded for {FIRST} {LAST} in {CITY}, {STATE}.\n"
+                "⚠️  ACTION REQUIRED — the bot could not fully complete the form:\n"
+                "1. Visit anywho.com/opt-out in your browser\n"
+                "2. Enter your name, city, and state and click Search\n"
+                "3. Find your listing and click Remove\n"
+                f"4. Enter your email ({EMAIL}) and submit\n"
+                "5. Click the verification link in your email\n\n"
+                f"{_HEADLESS_NOTE}"
+            )
+
+        return {
+            "success": clicked_remove or submitted_email,
+            "method": "form",
+            "confirmation": confirmed,
+            "notes": notes,
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "method": "form",
+            "confirmation": False,
+            "notes": (
+                f"Error during AnyWho opt-out: {e}\n"
+                "Manual steps:\n"
+                "1. Go to anywho.com/opt-out\n"
+                "2. Enter your name, city, and state\n"
+                "3. Select your listing and click 'Remove'\n"
+                f"4. Enter your email ({EMAIL}) and submit\n"
+                "5. Click the verification link in your email"
+            ),
+        }
+
+
 async def request_generic(page, scan: dict) -> dict:
     opt_out_url  = scan.get("opt_out_url", "")
     site_name    = scan.get("site_name", "this site")
@@ -612,6 +739,7 @@ REQUESTER_MAP = {
     "FastPeopleSearch": request_fastpeoplesearch,
     "TruthFinder":      request_truthfinder,
     "Radaris":          request_radaris,
+    "AnyWho":           request_anywho,
 }
 
 
